@@ -1,50 +1,54 @@
 import requests
+from requests.exceptions import InvalidURL,MissingSchema
 from bs4 import BeautifulSoup
-import logging
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s:%(levelname)s:%(message)s')
-logging.info("Test INFO logging started")
 
-def fetch_website_contents(url):
-
-    # url = "https://realpython.com/python-requests/"
-    headers = {
-        "User-Agents": "Kalyan Chrome Browser"
-    }
+def webpage_content(url,header):
     try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-    except HTTPError as http_err:
-        #Requests will raise this error if response between 400 and 600
-        logging.error("HTTP error occurred: {}".format(http_err))
+        resp = requests.get(url=url, headers=header)
+        resp.raise_for_status()
+    except InvalidURL as e:
+        print(f"{url} raised an exception")
+        return None
+    except MissingSchema as e:
+        print(f"{url} raise missing schema exception")
+        return None
+    except Exception as e:
+        print(f"{url} raised an general exception")
+        return None
+    
+    soup = BeautifulSoup(resp.content, "html.parser")
+
+    title = soup.title.string if soup.title else "No-title"
+
+    if soup.body:
+        for decom in soup.body(["img","path","ellipse","input","span","nav","link","script","style"]):
+            decom.decompose()
+        text = soup.body.get_text()
     else:
-        logging.info("Response success for the URL: {}".format(url))
+        text = " "
 
-    return response.content
-
-    # logging.info("Response to Text")
-    # print(response.text)
-
-    # logging.info("Response to JSON")
-    # print(response.json())
-
-    # logging.info("Response to Bytes")
-    # print(response.content)
+    return(title + "\n" + text)[:2000]
 
 
+def fetch_website_url(url,header):
+    try:
+        resp = requests.get(url=url, headers=header)
+        resp.raise_for_status()
+    except InvalidURL as e:
+        print(f"{url} raised an exception")
+        return None
+    except MissingSchema as e:
+        print(f"{url} raise missing schema exception")
+        return None
+    except Exception as e:
+        print(f"{url} raised an general exception")
+        return None
+    
+    soup = BeautifulSoup(resp.content, "html.parser")
 
+    title = soup.title.string if soup.title else "No-title"
+    
+    url_links = [ele.get("href") for ele in soup.find_all('a')]
 
-def website_scraper(resp_content):
-    resp = resp_content
-
-    soup = BeautifulSoup(resp, "html.parser")
-    # print(soup.prettify())
-
-    # print([ele.get_text().strip() for ele in soup.find_all("p")])
-
-    # print([ele.get_text().strip() for ele in soup.find_all("p",class_="is-small has-text-grey")])
-
-    title = soup.find("title").get_text().strip()
-
-    href_attr_list = [ele["href"] for ele in soup.find_all("a")]
-    return title + " " + str([link for link in href_attr_list if link])
+    return(title + "\n" + str(url_links))[:2000]
